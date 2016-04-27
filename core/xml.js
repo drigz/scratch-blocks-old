@@ -313,31 +313,34 @@ Blockly.Xml.domToWorkspace = function(workspace, xml) {
 Blockly.Xml.domToBlock = function(workspace, xmlBlock) {
   // Create top-level block.
   Blockly.Events.disable();
-  var topBlock = Blockly.Xml.domToBlockHeadless_(workspace, xmlBlock);
-  if (workspace.rendered) {
-    // Hide connections to speed up assembly.
-    topBlock.setConnectionsHidden(true);
-    // Generate list of all blocks.
-    var blocks = topBlock.getDescendants();
-    // Render each block.
-    for (var i = blocks.length - 1; i >= 0; i--) {
-      blocks[i].initSvg();
-    }
-    for (var i = blocks.length - 1; i >= 0; i--) {
-      blocks[i].render(false);
-    }
-    // Populating the connection database may be defered until after the blocks
-    // have renderend.
-    setTimeout(function() {
-      if (topBlock.workspace) {  // Check that the block hasn't been deleted.
-        topBlock.setConnectionsHidden(false);
+  try {
+    var topBlock = Blockly.Xml.domToBlockHeadless_(workspace, xmlBlock);
+    if (workspace.rendered) {
+      // Hide connections to speed up assembly.
+      topBlock.setConnectionsHidden(true);
+      // Generate list of all blocks.
+      var blocks = topBlock.getDescendants();
+      // Render each block.
+      for (var i = blocks.length - 1; i >= 0; i--) {
+        blocks[i].initSvg();
       }
-    }, 1);
-    topBlock.updateDisabled();
-    // Fire an event to allow scrollbars to resize.
-    Blockly.fireUiEvent(window, 'resize');
+      for (var i = blocks.length - 1; i >= 0; i--) {
+        blocks[i].render(false);
+      }
+      // Populating the connection database may be defered until after the blocks
+      // have renderend.
+      setTimeout(function() {
+        if (topBlock.workspace) {  // Check that the block hasn't been deleted.
+          topBlock.setConnectionsHidden(false);
+        }
+      }, 1);
+      topBlock.updateDisabled();
+      // Fire an event to allow scrollbars to resize.
+      Blockly.fireUiEvent(window, 'resize');
+    }
+  } finally {
+    Blockly.Events.enable();
   }
-  Blockly.Events.enable();
   if (Blockly.Events.isEnabled()) {
     Blockly.Events.fire(new Blockly.Events.Create(topBlock));
   }

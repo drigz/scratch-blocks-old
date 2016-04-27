@@ -922,8 +922,11 @@ Blockly.Flyout.prototype.createBlockFunc_ = function(originBlock) {
       return;
     }
     Blockly.Events.disable();
-    var block = Blockly.Flyout.placeNewBlock_(originBlock, workspace, flyout);
-    Blockly.Events.enable();
+    try {
+      var block = Blockly.Flyout.placeNewBlock_(originBlock, workspace, flyout);
+    } finally {
+      Blockly.Events.enable();
+    }
     if (Blockly.Events.isEnabled()) {
       Blockly.Events.setGroup(true);
       Blockly.Events.fire(new Blockly.Events.Create(block));

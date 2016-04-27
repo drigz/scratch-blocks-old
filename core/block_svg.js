@@ -154,8 +154,11 @@ Blockly.BlockSvg.prototype.select = function() {
     oldId = Blockly.selected.id;
     // Unselect any previously selected block.
     Blockly.Events.disable();
-    Blockly.selected.unselect();
-    Blockly.Events.enable();
+    try {
+      Blockly.selected.unselect();
+    } finally {
+      Blockly.Events.enable();
+    }
   }
   var event = new Blockly.Events.Ui(null, 'selected', oldId, this.id);
   event.workspaceId = this.workspace.id;
@@ -273,12 +276,15 @@ Blockly.BlockSvg.terminateDrag_ = function() {
     if (selected) {
       if (Blockly.insertionMarker_) {
         Blockly.Events.disable();
-        if (Blockly.insertionMarkerConnection_) {
-          Blockly.BlockSvg.disconnectInsertionMarker();
+        try {
+          if (Blockly.insertionMarkerConnection_) {
+            Blockly.BlockSvg.disconnectInsertionMarker();
+          }
+          Blockly.insertionMarker_.dispose();
+          Blockly.insertionMarker_ = null;
+        } finally {
+          Blockly.Events.enable();
         }
-        Blockly.insertionMarker_.dispose();
-        Blockly.insertionMarker_ = null;
-        Blockly.Events.enable();
       }
       // Update the connection locations.
       var xy = selected.getRelativeToSurfaceXY();
@@ -1039,63 +1045,65 @@ Blockly.BlockSvg.prototype.updatePreviews = function(closestConnection,
     localConnection, radiusConnection, e, dx, dy, candidateIsLast) {
   // Don't fire events for insertion marker creation or movement.
   Blockly.Events.disable();
-  // Remove an insertion marker if needed.  For Scratch-Blockly we are using
-  // grayed-out blocks instead of highlighting the connection; for compatibility
-  // with Web Blockly the name "highlightedConnection" will still be used.
-  if (Blockly.highlightedConnection_ &&
-      Blockly.highlightedConnection_ != closestConnection) {
-    if (Blockly.insertionMarker_ && Blockly.insertionMarkerConnection_) {
-      Blockly.BlockSvg.disconnectInsertionMarker();
-    }
-    // If there's already an insertion marker but it's representing the wrong
-    // block, delete it so we can create the correct one.
-    if (Blockly.insertionMarker_ &&
-        ((candidateIsLast && Blockly.localConnection_.sourceBlock_ == this) ||
-         (!candidateIsLast && Blockly.localConnection_.sourceBlock_ != this))) {
-      Blockly.insertionMarker_.dispose();
-      Blockly.insertionMarker_ = null;
-    }
-    Blockly.highlightedConnection_ = null;
-    Blockly.localConnection_ = null;
-  }
-
-  // Add an insertion marker if needed.
-  if (closestConnection &&
-      closestConnection != Blockly.highlightedConnection_ &&
-      !closestConnection.sourceBlock_.isInsertionMarker()) {
-    Blockly.highlightedConnection_ = closestConnection;
-    Blockly.localConnection_ = localConnection;
-    if (!Blockly.insertionMarker_) {
-      Blockly.insertionMarker_ =
-          this.workspace.newBlock(Blockly.localConnection_.sourceBlock_.type);
-      Blockly.insertionMarker_.setInsertionMarker(true);
-      Blockly.insertionMarker_.initSvg();
-    }
-
-    var insertionMarker = Blockly.insertionMarker_;
-    var insertionMarkerConnection = insertionMarker.getMatchingConnection(
-        localConnection.sourceBlock_, localConnection);
-    if (insertionMarkerConnection != Blockly.insertionMarkerConnection_) {
-      insertionMarker.rendered = true;
-      // Render disconnected from everything else so that we have a valid
-      // connection location.
-      insertionMarker.render();
-      insertionMarker.getSvgRoot().setAttribute('visibility', 'visible');
-
-      this.positionNewBlock(insertionMarker,
-          insertionMarkerConnection, closestConnection);
-
-      if (insertionMarkerConnection.type == Blockly.PREVIOUS_STATEMENT &&
-          !insertionMarker.nextConnection) {
-        Blockly.bumpedConnection_ = closestConnection.targetConnection;
+  try {
+    // Remove an insertion marker if needed.  For Scratch-Blockly we are using
+    // grayed-out blocks instead of highlighting the connection; for compatibility
+    // with Web Blockly the name "highlightedConnection" will still be used.
+    if (Blockly.highlightedConnection_ &&
+        Blockly.highlightedConnection_ != closestConnection) {
+      if (Blockly.insertionMarker_ && Blockly.insertionMarkerConnection_) {
+        Blockly.BlockSvg.disconnectInsertionMarker();
       }
-      // Renders insertion marker.
-      insertionMarkerConnection.connect(closestConnection);
-      Blockly.insertionMarkerConnection_ = insertionMarkerConnection;
+      // If there's already an insertion marker but it's representing the wrong
+      // block, delete it so we can create the correct one.
+      if (Blockly.insertionMarker_ &&
+          ((candidateIsLast && Blockly.localConnection_.sourceBlock_ == this) ||
+           (!candidateIsLast && Blockly.localConnection_.sourceBlock_ != this))) {
+        Blockly.insertionMarker_.dispose();
+        Blockly.insertionMarker_ = null;
+      }
+      Blockly.highlightedConnection_ = null;
+      Blockly.localConnection_ = null;
     }
+
+    // Add an insertion marker if needed.
+    if (closestConnection &&
+        closestConnection != Blockly.highlightedConnection_ &&
+        !closestConnection.sourceBlock_.isInsertionMarker()) {
+      Blockly.highlightedConnection_ = closestConnection;
+      Blockly.localConnection_ = localConnection;
+      if (!Blockly.insertionMarker_) {
+        Blockly.insertionMarker_ =
+            this.workspace.newBlock(Blockly.localConnection_.sourceBlock_.type);
+        Blockly.insertionMarker_.setInsertionMarker(true);
+        Blockly.insertionMarker_.initSvg();
+      }
+
+      var insertionMarker = Blockly.insertionMarker_;
+      var insertionMarkerConnection = insertionMarker.getMatchingConnection(
+          localConnection.sourceBlock_, localConnection);
+      if (insertionMarkerConnection != Blockly.insertionMarkerConnection_) {
+        insertionMarker.rendered = true;
+        // Render disconnected from everything else so that we have a valid
+        // connection location.
+        insertionMarker.render();
+        insertionMarker.getSvgRoot().setAttribute('visibility', 'visible');
+
+        this.positionNewBlock(insertionMarker,
+            insertionMarkerConnection, closestConnection);
+
+        if (insertionMarkerConnection.type == Blockly.PREVIOUS_STATEMENT &&
+            !insertionMarker.nextConnection) {
+          Blockly.bumpedConnection_ = closestConnection.targetConnection;
+        }
+        // Renders insertion marker.
+        insertionMarkerConnection.connect(closestConnection);
+        Blockly.insertionMarkerConnection_ = insertionMarkerConnection;
+      }
+    }
+  } finally {
+    Blockly.Events.enable();
   }
-  // Reenable events.
-  Blockly.Events.enable();
 
   // Provide visual indication of whether the block will be deleted if
   // dropped here.
@@ -1231,11 +1239,14 @@ Blockly.BlockSvg.prototype.dispose = function(healStack, animate) {
   this.rendered = false;
 
   Blockly.Events.disable();
-  var icons = this.getIcons();
-  for (var i = 0; i < icons.length; i++) {
-    icons[i].dispose();
+  try {
+    var icons = this.getIcons();
+    for (var i = 0; i < icons.length; i++) {
+      icons[i].dispose();
+    }
+  } finally {
+    Blockly.Events.enable();
   }
-  Blockly.Events.enable();
   Blockly.BlockSvg.superClass_.dispose.call(this, healStack);
 
   goog.dom.removeNode(this.svgGroup_);
