@@ -693,13 +693,8 @@ Blockly.Flyout.prototype.show = function(xmlList) {
  * @private
  */
 Blockly.Flyout.prototype.addBlockListeners_ = function(root, block, rect) {
-    if (this.autoClose) {
-      this.listeners_.push(Blockly.bindEvent_(root, 'mousedown', null,
-          this.createBlockFunc_(block)));
-    } else {
-      this.listeners_.push(Blockly.bindEvent_(root, 'mousedown', null,
-          this.blockMouseDown_(block)));
-    }
+    this.listeners_.push(Blockly.bindEvent_(root, 'mousedown', null,
+	this.blockMouseDown_(block)));
     this.listeners_.push(Blockly.bindEvent_(root, 'mouseover', block,
         block.addSelect));
     this.listeners_.push(Blockly.bindEvent_(root, 'mouseout', block,
@@ -721,9 +716,8 @@ Blockly.Flyout.prototype.addBlockListeners_ = function(root, block, rect) {
 Blockly.Flyout.prototype.blockMouseDown_ = function(block) {
   var flyout = this;
   return function(e) {
-    flyout.dragMode_ = Blockly.DRAG_NONE;
     Blockly.terminateDrag_();
-    Blockly.hideChaff();
+    Blockly.hideChaff(true);
     if (Blockly.isRightButton(e)) {
       // Right-click.
       block.showContextMenu_(e);
@@ -752,7 +746,7 @@ Blockly.Flyout.prototype.blockMouseDown_ = function(block) {
  * @private
  */
 Blockly.Flyout.prototype.onMouseDown_ = function(e) {
-  this.dragMode_ = Blockly.DRAG_FREE;
+  Blockly.dragMode_ = Blockly.DRAG_FREE;
   if (Blockly.isRightButton(e)) {
     return;
   }
@@ -819,7 +813,7 @@ Blockly.Flyout.prototype.onMouseMoveBlock_ = function(e) {
   if (createBlock) {
     Blockly.Flyout.startFlyout_.createBlockFunc_(Blockly.Flyout.startBlock_)(
         Blockly.Flyout.startDownEvent_);
-  } else if (Blockly.Flyout.startFlyout_.dragMode_ == Blockly.DRAG_FREE) {
+  } else if (Blockly.dragMode_ == Blockly.DRAG_FREE) {
     // Do a scroll
     Blockly.Flyout.startFlyout_.onMouseMove_(e);
   }
@@ -835,14 +829,14 @@ Blockly.Flyout.prototype.onMouseMoveBlock_ = function(e) {
  * @return {boolean} True if a new block should be created.
  */
 Blockly.Flyout.prototype.determineDragIntention_ = function(dx, dy) {
-  if (this.dragMode_ == Blockly.DRAG_FREE) {
+  if (Blockly.dragMode_ == Blockly.DRAG_FREE) {
     // Once in free mode, always stay in free mode and never create a block.
     return false;
   }
   var dragDistance = Math.sqrt(dx * dx + dy * dy);
   if (dragDistance < Blockly.DRAG_RADIUS) {
     // Still within the sticky drag radius
-    this.dragMode_ = Blockly.DRAG_STICKY;
+    Blockly.dragMode_ = Blockly.DRAG_STICKY;
     return false;
   } else {
     if (this.isDragTowardWorkspace_(dx, dy)) {
@@ -850,7 +844,7 @@ Blockly.Flyout.prototype.determineDragIntention_ = function(dx, dy) {
       return true;
     } else {
       // Immediately move to free mode - the drag is away from the workspace.
-      this.dragMode_ = Blockly.DRAG_FREE;
+      Blockly.dragMode_ = Blockly.DRAG_FREE;
       return false;
     }
   }
